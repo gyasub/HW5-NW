@@ -97,7 +97,155 @@ class NeedlemanWunsch:
                 elif start is True and res_2 == len(residue_list):
                     break
         return dict_sub
+    
 
+    #  Method for pytesting (returns the matrices)
+
+    def return_matrices(self, seqA: str, seqB: str) -> Tuple[np.array, np.array]:
+        # Resetting alignment in case method is called more than once
+        self.seqA_align = ""
+        self.seqB_align = ""
+
+        # Resetting alignment score in case method is called more than once
+        self.alignment_score = 0
+
+        # Initializing sequences for use in backtrace method
+        self._seqA = seqA
+        self._seqB = seqB
+        
+        # TODO: Initialize matrix private attributes for use in alignment
+        # create matrices for alignment scores, gaps, and backtracing
+        
+        # Handling Edge Cases
+        if len(self._seqA) == 0 or len(self._seqB) == 0:
+            raise ValueError('Input Sequences should be nonzero length.')
+        
+        # Assigning penalties to method variables
+        gap_open = self.gap_open
+        gap_extend = self.gap_extend
+
+
+
+        # Flag to indicate gap open/close
+        gap = False             # No gaps as default
+
+        # Assigning dimensions for the matrices
+        row, col = len(self._seqB), len(self._seqA)
+
+    
+        # Creating empty matrices for align, gapA and gapB
+        self._align_matrix = np.empty((row+1, col+1))
+        self._gapA_matrix = np.empty((row+1, col+1), dtype=str)
+        self._gapB_matrix = np.empty((row+1, col+1), dtype=str)
+        
+        # Initializing matrix for traceback
+        self._back = np.empty((row+1, col+1), dtype=object)
+
+        # Initializing values of the align matrix
+        self._align_matrix[0,0] = 0
+
+        # Initializing row 0 values of the align matrix
+        for i in range(col):
+            if gap:
+                self._align_matrix[0, i+1] = self._align_matrix[0, i] + gap_extend
+                self._back[0, i+1] = (0,i)
+            
+            else:
+                self._align_matrix[0, i+1] = self._align_matrix[0, i] + gap_open + gap_extend
+                gap = True
+                self._back[0, i+1] = (0,i)
+
+        # Resetting gap flag
+        gap = False
+
+        # Initializing col 0 values of the align matrix
+        for i in range(row):
+            if gap:
+                self._align_matrix[i+1, 0] = self._align_matrix[i, 0] + gap_extend
+                self._back[i+1, 0] = (i, 0)
+            
+            else:
+                self._align_matrix[i+1, 0] = self._align_matrix[i, 0] + gap_open + gap_extend
+                gap = True
+                self._back[i+1, 0] = (i, 0)
+
+        # Init alignment_score
+        self.alignment_score = 0
+
+        # Resetting gap flag 
+        gap = False
+
+        # TODO: Implement global alignment here
+        for i in range(row):
+            for j in range(col):
+
+                # Looking up neighbor values
+                diagonal = self._align_matrix[i, j]
+                vertical = self._align_matrix[i, j+1]
+                horizontal = self._align_matrix[i+1, j]
+
+
+
+
+                # Setting gap penalty based on whether gap flag is True/False
+                if gap:
+                    gap_pen = gap_extend
+                else:
+                    gap_pen = gap_open + gap_extend
+
+                # Finding the max values among the neighbors
+                max_val = max(diagonal + self.sub_dict[(self._seqA[j], self._seqB[i])], 
+                              vertical + gap_pen, 
+                              horizontal + gap_pen)
+                
+
+
+
+
+                # Determine which operation gave the maximum value
+                if max_val == diagonal + self.sub_dict[(self._seqA[j], self._seqB[i])]:
+                    max_index = (i, j)
+
+                    # Assigning no-gap values in A
+                    self._gapA_matrix[i+1, j+1] = self._seqA[j]
+
+                    # Assigning no-gap values in B
+                    self._gapB_matrix[i+1, j+1] = self._seqB[i]
+
+                    # Resetting gap flag
+                    gap = False
+
+                elif max_val == vertical + gap_pen:
+                    max_index = (i, j+1)
+
+                    # Assigning gap values in A
+                    self._gapA_matrix[i+1, j+1] = '-'
+                    gap = True          # Open the gap
+
+                    # Assigning no-gap values in B
+                    self._gapB_matrix[i+1, j+1] = self._seqB[i]
+
+                else:
+                    max_index = (i+1, j)
+
+                    # Assigning no-gap values in A
+                    self._gapA_matrix[i+1, j+1] = self._seqA[j]
+
+                    # Assigning gap values in B
+                    self._gapB_matrix[i+1, j+1] = '-'
+                    gap = True          # Open the gap
+                
+
+
+                # Updating the align matrix
+                self._align_matrix[i+1, j+1] = max_val
+
+                # Update the backtrace matrix
+                self._back[i+1, j+1] = max_index
+
+        # Return the output
+        return self._align_matrix, self._back
+    
     def align(self, seqA: str, seqB: str) -> Tuple[float, str, str]:
         """
         TODO
@@ -126,14 +274,139 @@ class NeedlemanWunsch:
         self._seqA = seqA
         self._seqB = seqB
         
+
+
         # TODO: Initialize matrix private attributes for use in alignment
         # create matrices for alignment scores, gaps, and backtracing
-        pass
-
         
+        # Handling Edge Cases
+        if len(self._seqA) == 0 or len(self._seqB) == 0:
+            raise ValueError('Input Sequences should be nonzero length.')
+        
+        # Assigning penalties to method variables
+        gap_open = self.gap_open
+        gap_extend = self.gap_extend
+
+
+
+        # Flag to indicate gap open/close
+        gap = False             # No gaps as default
+
+        # Assigning dimensions for the matrices
+        row, col = len(self._seqB), len(self._seqA)
+
+    
+        # Creating empty matrices for align, gapA and gapB
+        self._align_matrix = np.empty((row+1, col+1))
+        self._gapA_matrix = np.empty((row+1, col+1), dtype=str)
+        self._gapB_matrix = np.empty((row+1, col+1), dtype=str)
+        
+        # Initializing matrix for traceback
+        self._back = np.empty((row+1, col+1), dtype=object)
+
+        # Initializing values of the align matrix
+        self._align_matrix[0,0] = 0
+
+        # Initializing row 0 values of the align matrix
+        for i in range(col):
+            if gap:
+                self._align_matrix[0, i+1] = self._align_matrix[0, i] + gap_extend
+                self._back[0, i+1] = (0,i)
+            
+            else:
+                self._align_matrix[0, i+1] = self._align_matrix[0, i] + gap_open + gap_extend
+                gap = True
+                self._back[0, i+1] = (0,i)
+
+        # Resetting gap flag
+        gap = False
+
+        # Initializing col 0 values of the align matrix
+        for i in range(row):
+            if gap:
+                self._align_matrix[i+1, 0] = self._align_matrix[i, 0] + gap_extend
+                self._back[i+1, 0] = (i, 0)
+            
+            else:
+                self._align_matrix[i+1, 0] = self._align_matrix[i, 0] + gap_open + gap_extend
+                gap = True
+                self._back[i+1, 0] = (i, 0)
+
+        # Init alignment_score
+        self.alignment_score = 0
+
+        # Resetting gap flag 
+        gap = False
+
         # TODO: Implement global alignment here
-        pass      		
-        		    
+        for i in range(row):
+            for j in range(col):
+
+                # Looking up neighbor values
+                diagonal = self._align_matrix[i, j]
+                vertical = self._align_matrix[i, j+1]
+                horizontal = self._align_matrix[i+1, j]
+
+
+
+
+                # Setting gap penalty based on whether gap flag is True/False
+                if gap:
+                    gap_pen = gap_extend
+                else:
+                    gap_pen = gap_open + gap_extend
+
+                # Finding the max values among the neighbors
+                max_val = max(diagonal + self.sub_dict[(self._seqA[j], self._seqB[i])], 
+                              vertical + gap_pen, 
+                              horizontal + gap_pen)
+                
+
+
+
+
+                # Determine which operation gave the maximum value
+                if max_val == diagonal + self.sub_dict[(self._seqA[j], self._seqB[i])]:
+                    max_index = (i, j)
+
+                    # Assigning no-gap values in A
+                    self._gapA_matrix[i+1, j+1] = self._seqA[j]
+
+                    # Assigning no-gap values in B
+                    self._gapB_matrix[i+1, j+1] = self._seqB[i]
+
+                    # Resetting gap flag
+                    gap = False
+
+                elif max_val == vertical + gap_pen:
+                    max_index = (i, j+1)
+
+                    # Assigning gap values in A
+                    self._gapA_matrix[i+1, j+1] = '-'
+                    gap = True          # Open the gap
+
+                    # Assigning no-gap values in B
+                    self._gapB_matrix[i+1, j+1] = self._seqB[i]
+
+                else:
+                    max_index = (i+1, j)
+
+                    # Assigning no-gap values in A
+                    self._gapA_matrix[i+1, j+1] = self._seqA[j]
+
+                    # Assigning gap values in B
+                    self._gapB_matrix[i+1, j+1] = '-'
+                    gap = True          # Open the gap
+                
+
+
+                # Updating the align matrix
+                self._align_matrix[i+1, j+1] = max_val
+
+                # Update the backtrace matrix
+                self._back[i+1, j+1] = max_index
+
+        # Return the output
         return self._backtrace()
 
     def _backtrace(self) -> Tuple[float, str, str]:
@@ -150,7 +423,42 @@ class NeedlemanWunsch:
          	(alignment score, seqA alignment, seqB alignment) : Tuple[float, str, str]
          		the score and corresponding strings for the alignment of seqA and seqB
         """
-        pass
+        # Traceback procedure
+        
+        # Initializing variables to store aligned sequence
+        rev_seqA_align = ""
+        rev_seqB_align = ""
+
+
+        # Empty list for extracting path
+        path = [(len(self._seqB), len(self._seqA))]
+        prev_index = (len(self._seqB), len(self._seqA))
+
+        # Loop to find seqA and seqB and the path
+        while True:
+        
+            r, c = prev_index
+
+            rev_seqA_align = rev_seqA_align + self._gapA_matrix[r, c]
+            rev_seqB_align = rev_seqB_align + self._gapB_matrix[r, c]
+            
+            if r == 1 and c == 1:
+                break
+
+            prev_index = self._back[r, c]
+
+            if prev_index is None:
+                break
+
+            path.append(prev_index)
+            
+
+        # Reverse the sequences for output
+        self.seqA_align = "".join(reversed(rev_seqA_align))
+        self.seqB_align = "".join(reversed(rev_seqB_align))
+
+        # Extract alignment score
+        self.alignment_score = self._align_matrix[len(self._seqB), len(self._seqA)]
 
         return (self.alignment_score, self.seqA_align, self.seqB_align)
 
